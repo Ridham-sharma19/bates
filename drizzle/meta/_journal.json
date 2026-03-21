@@ -8,6 +8,13 @@
       "when": 1773590898787,
       "tag": "0000_spooky_namora",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774119859104,
+      "tag": "0001_complete_odin",
+      "breakpoints": true
     }
   ]
 }
