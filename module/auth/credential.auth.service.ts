@@ -45,7 +45,7 @@ export const registerService = async (
   if (!newUser) throw new ApiError(500, "Failed to create user account.");
 
   const { accessToken, refreshToken } = generateTokens(newUser.id);
-  const expiresAt = getExpiryDate(process.env.REFRESH_TOKEN_SECRET_EXPIRY || "30m");
+  const expiresAt = getExpiryDate(process.env.REFRESH_TOKEN_SECRET_EXPIRY!);
 
   await db.insert(refreshTokens).values({
     userId: newUser.id,
@@ -83,7 +83,7 @@ export const loginService = async (email: string, password: string, userAgent?: 
   if (!isPasswordValid) throw new ApiError(401, "Invalid email or password.");
 
   const { accessToken, refreshToken } = generateTokens(existingUser.id);
-  const expiresAt = getExpiryDate(process.env.REFRESH_TOKEN_SECRET_EXPIRY || "30m");
+  const expiresAt = getExpiryDate(process.env.REFRESH_TOKEN_SECRET_EXPIRY!);
 
   await db.insert(refreshTokens).values({
     userId: existingUser.id,

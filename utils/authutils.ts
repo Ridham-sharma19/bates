@@ -4,6 +4,18 @@ import jwt, { type SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import crypto from "crypto";
 
+
+
+export const verifyToken = (token: string) => {
+  try {
+    const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET!);
+    return decoded as { id: string };
+  }
+  catch (err) {
+    return null;
+  }
+};
+
 export const generateTokens = (userId: string) => {
   const accessToken = jwt.sign(
     { userId },
