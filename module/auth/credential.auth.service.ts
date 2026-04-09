@@ -1,9 +1,11 @@
 import { db } from "../../db";
 import { users, refreshTokens } from "../../db/schema";
 import { eq } from "drizzle-orm";
+import type { Request, Response, NextFunction } from "express";
 import { ApiError } from "../../utils/errorHandler"; 
 import { hashPassword, comparePassword, generateTokens } from "../../utils/authutils";
-import ApiResponse from "../../utils/apiResponse"; // Import your class
+import ApiResponse from "../../utils/apiResponse"; 
+import { AsyncHandler } from "../../utils/asyncHandler";
 
 const getExpiryDate = (expiryStr: string): Date => {
   const value = parseInt(expiryStr);
@@ -103,3 +105,22 @@ export const loginService = async (email: string, password: string, userAgent?: 
 
   return new ApiResponse(200, responseData, "Login successful", true);
 };
+export const logoutUser = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  await db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
+
+  const options = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+  };
+
+  res.status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User logged out successfully", true));
+});
