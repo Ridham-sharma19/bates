@@ -6,6 +6,7 @@ import { ApiError } from "../../utils/errorHandler";
 import { hashPassword, comparePassword, generateTokens } from "../../utils/authutils";
 import ApiResponse from "../../utils/apiResponse"; 
 import { AsyncHandler } from "../../utils/asyncHandler";
+import { COOKIE_OPTIONS } from "../../consant";
 
 const getExpiryDate = (expiryStr: string): Date => {
   const value = parseInt(expiryStr);
@@ -15,12 +16,12 @@ const getExpiryDate = (expiryStr: string): Date => {
   return new Date(now.getTime() + 3600000); 
 };
 
-export const registerService = async (
-  email: string,
-  password: string,
-  username?: string,
-  userAgent?: string,
-) => {
+
+
+export const registerService = AsyncHandler(async (req, res) => {
+  const { email, password, username } = req.body;
+  const userAgent = req.headers["user-agent"] || "unknown device";
+
   const existingUser = await db
     .select()
     .from(users)
@@ -47,30 +48,35 @@ export const registerService = async (
   if (!newUser) throw new ApiError(500, "Failed to create user account.");
 
   const { accessToken, refreshToken } = generateTokens(newUser.id);
-  const expiresAt = getExpiryDate(process.env.REFRESH_TOKEN_SECRET_EXPIRY!);
 
   await db.insert(refreshTokens).values({
     userId: newUser.id,
     token: refreshToken,
-    userAgent: userAgent || "unknown device",
-    expiresAt: expiresAt,
+    userAgent: userAgent,
+    expiresAt: getExpiryDate(process.env.REFRESH_TOKEN_EXPIRY!),
   });
 
- 
   const responseData = {
     user: { 
-      ...newUser, 
-      avatar: newUser.avatar || (newUser.username ? newUser.username.charAt(0).toUpperCase() : "U") 
+      id: newUser.id,
+      email: newUser.email,
+      username: newUser.username,
+      avatar: newUser.avatar || newUser.username?.charAt(0).toUpperCase()
     },
-    accessToken,
-    refreshToken
+    accessToken
   };
 
+  return res
+    .status(201)
+    .cookie("accessToken", accessToken, COOKIE_OPTIONS!)
+    .cookie("refreshToken", refreshToken, COOKIE_OPTIONS)
+    .json(new ApiResponse(201, responseData, "User registered successfully", true));
+});
 
-  return new ApiResponse(201, responseData, "User registered successfully", true);
-};
+export const loginService = AsyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  const userAgent = req.headers["user-agent"] || "unknown device";
 
-export const loginService = async (email: string, password: string, userAgent?: string) => {
   const existingUser = await db
     .select()
     .from(users)
@@ -85,42 +91,46 @@ export const loginService = async (email: string, password: string, userAgent?: 
   if (!isPasswordValid) throw new ApiError(401, "Invalid email or password.");
 
   const { accessToken, refreshToken } = generateTokens(existingUser.id);
-  const expiresAt = getExpiryDate(process.env.REFRESH_TOKEN_SECRET_EXPIRY!);
 
   await db.insert(refreshTokens).values({
     userId: existingUser.id,
     token: refreshToken,
-    userAgent: userAgent || "unknown device",
-    expiresAt: expiresAt,
+    userAgent: userAgent,
+    expiresAt: getExpiryDate(process.env.REFRESH_TOKEN_EXPIRY!),
   });
 
   const responseData = {
     user: { 
-      ...existingUser, 
-      avatar: existingUser.avatar || (existingUser.username ? existingUser.username.charAt(0).toUpperCase() : "U") 
+      id: existingUser.id,
+      email: existingUser.email,
+      username: existingUser.username,
+      avatar: existingUser.avatar || existingUser.username?.charAt(0).toUpperCase() || "U"
     },
-    accessToken,
-    refreshToken
+    accessToken
   };
 
-  return new ApiResponse(200, responseData, "Login successful", true);
-};
-export const logoutUser = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, COOKIE_OPTIONS)
+    .cookie("refreshToken", refreshToken, COOKIE_OPTIONS)
+    .json(new ApiResponse(200, responseData, "Login successful", true));
+});
+
+export const logoutUser = AsyncHandler(async (req, res) => {
+
   const userId = req.user?.id;
 
   if (!userId) {
     throw new ApiError(401, "Unauthorized");
   }
 
-  await db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
-
-  const options = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-  };
-
-  res.status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
+  
+  await db
+    .delete(refreshTokens)
+    .where(eq(refreshTokens.userId, userId));
+  return res
+    .status(200)
+    .clearCookie("accessToken", COOKIE_OPTIONS)
+    .clearCookie("refreshToken", COOKIE_OPTIONS)
     .json(new ApiResponse(200, {}, "User logged out successfully", true));
 });
