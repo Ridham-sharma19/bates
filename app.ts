@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from "cookie-parser"
+import healthCheckRouter from "./routes/health.route"
 
 const app=express();
 
@@ -15,9 +16,9 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 
-app.get("/",(req,res)=>{
-    res.send("Hello World");
-}
-);
+app.use("/api/v1",healthCheckRouter);   
+
+
+
 
 export default app;
