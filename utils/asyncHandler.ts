@@ -5,4 +5,4 @@ const AsyncHandler=(fn:RequestHandler)=>{
         Promise.resolve(fn(req, res, next)).catch(next);
     };
 };
-export { AsyncHandler }
+export default AsyncHandler 

@@ -1,9 +1,9 @@
-import { db } from "../../db";
-import { refreshTokens } from "../../db/schema";
+import { db } from "../db";
+import { refreshTokens } from "../db/schema";
 import { eq, and, gt } from "drizzle-orm";
-import { ApiError } from "../../utils/errorHandler"; 
-import { verifyToken, generateTokens } from "../../utils/authutils";
-import ApiResponse from "../../utils/apiResponse";
+import { ApiError } from "./errorHandler"; 
+import { verifyToken, generateTokens } from "./authutils";
+import ApiResponse from "./apiResponse";
 
 export const refreshAccessTokenService = async (oldRefreshToken: string) => {
   
@@ -13,9 +13,6 @@ export const refreshAccessTokenService = async (oldRefreshToken: string) => {
   if (!decoded || !decoded.id) {
     throw new ApiError(401, "Refresh token is invalid or has expired.");
   }
-
-  
-  
   const [storedToken] = await db
     .select()
     .from(refreshTokens)

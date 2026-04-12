@@ -5,7 +5,7 @@ import type { Request, Response, NextFunction } from "express";
 import { ApiError } from "../../utils/errorHandler"; 
 import { hashPassword, comparePassword, generateTokens } from "../../utils/authutils";
 import ApiResponse from "../../utils/apiResponse"; 
-import { AsyncHandler } from "../../utils/asyncHandler";
+import  AsyncHandler  from "../../utils/asyncHandler";
 import { COOKIE_OPTIONS } from "../../consant";
 
 const getExpiryDate = (expiryStr: string): Date => {
